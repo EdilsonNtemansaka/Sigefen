@@ -1360,7 +1360,7 @@
   // ════════════════════════════════════════════════════════
   // API — ligação ao backend
   // ════════════════════════════════════════════════════════
-  const API_URL = 'http://localhost:3000';
+  const API_URL = 'https://sigefen-production.up.railway.app';
 
   function getToken() { return localStorage.getItem('sigefen_token'); }
   function getUser()  { try { return JSON.parse(localStorage.getItem('sigefen_user')||'null'); } catch { return null; } }
