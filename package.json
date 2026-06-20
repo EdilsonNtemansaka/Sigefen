@@ -1,0 +1,14 @@
+{
+  "name": "sigefen",
+  "version": "1.0.0",
+  "description": "SIGEFEN — Sistema de Frotas Edilson Ntemansaka",
+  "main": "backend/src/index.js",
+  "scripts": {
+    "start": "node backend/src/index.js",
+    "dev": "node --watch backend/src/index.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "license": "ISC"
+}

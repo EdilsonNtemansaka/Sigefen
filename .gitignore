@@ -1,0 +1,7 @@
+backend/node_modules/
+backend/.env
+.env
+.env.local
+*.log
+.DS_Store
+.claude/
