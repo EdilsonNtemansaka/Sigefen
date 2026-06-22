@@ -13,10 +13,11 @@ router.post('/login', async (req, res) => {
     if (error || !data) return res.status(401).json({ erro: 'Credenciais inválidas' });
     const valido = await bcrypt.compare(password, data.password_hash);
     if (!valido) return res.status(401).json({ erro: 'Credenciais inválidas' });
+    const expiresIn = (process.env.JWT_EXPIRES_IN || '8h').replace(/['"]/g, '');
     const token = jwt.sign(
       { id: data.id, nome: data.nome, email: data.email, papel: data.papel },
       process.env.JWT_SECRET,
-      { expiresIn: process.env.JWT_EXPIRES_IN }
+      { expiresIn }
     );
     res.json({ token, user: { id: data.id, nome: data.nome, email: data.email, papel: data.papel } });
   } catch (err) { res.status(500).json({ erro: err.message }); }
