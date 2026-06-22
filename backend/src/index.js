@@ -18,6 +18,7 @@ const { iniciarAlertas } = require('./alertas');
 
 const app = express();
 
+app.set('trust proxy', 1);
 app.use(helmet({ contentSecurityPolicy: false }));
 app.use(cors({ origin: '*' }));
 app.use(express.json());
