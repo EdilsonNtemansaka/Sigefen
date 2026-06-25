@@ -554,6 +554,9 @@
     <div class="nav-item" onclick="toggleTheme()" id="nav-theme">
       <i class="ti ti-moon" id="theme-icon"></i><span class="tooltip" data-i18n="tt-dark" data-i18n="modo-escuro">Modo escuro</span>
     </div>
+    <div class="nav-item" onclick="navigate('utilizadores')" id="nav-utilizadores">
+      <i class="ti ti-users"></i><span class="tooltip">Utilizadores</span>
+    </div>
     <div class="nav-item" onclick="navigate('definicoes')" id="nav-definicoes">
       <i class="ti ti-settings"></i><span class="tooltip" data-i18n="tt-definicoes">Definições</span>
     </div>
@@ -1354,6 +1357,59 @@
       </div>
     </div>
 
+    <!-- UTILIZADORES -->
+    <div class="page" id="page-utilizadores">
+      <div class="topbar">
+        <i class="ti ti-users topbar-icon"></i>
+        <div class="topbar-title">Gestão de Utilizadores</div>
+        <div style="margin-left:auto">
+          <button class="btn btn-primary" onclick="abrirModalUtilizador()"><i class="ti ti-plus"></i> Novo utilizador</button>
+        </div>
+      </div>
+      <div class="content">
+        <div class="card" style="padding:0;overflow:hidden">
+          <table style="width:100%;border-collapse:collapse;font-size:13px" id="tabela-utilizadores">
+            <thead>
+              <tr style="background:var(--bg2);border-bottom:1px solid var(--border)">
+                <th style="padding:12px 16px;text-align:left;color:var(--text2);font-weight:600">Nome</th>
+                <th style="padding:12px 16px;text-align:left;color:var(--text2);font-weight:600">Email</th>
+                <th style="padding:12px 16px;text-align:left;color:var(--text2);font-weight:600">Papel</th>
+                <th style="padding:12px 16px;text-align:left;color:var(--text2);font-weight:600">Estado</th>
+                <th style="padding:12px 16px;text-align:left;color:var(--text2);font-weight:600">Acções</th>
+              </tr>
+            </thead>
+            <tbody id="tbody-utilizadores">
+              <tr><td colspan="5" style="padding:24px;text-align:center;color:var(--text2)">A carregar...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL UTILIZADOR -->
+    <div id="modal-utilizador" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1000;align-items:center;justify-content:center">
+      <div style="background:var(--bg);border-radius:14px;padding:28px;width:380px;max-width:95vw;border:1px solid var(--border)">
+        <div style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:20px" id="modal-util-titulo">Novo utilizador</div>
+        <input type="hidden" id="util-id" />
+        <div class="form-group" style="margin-bottom:14px"><label>Nome completo</label><input type="text" id="util-nome" placeholder="Ex: João Silva" /></div>
+        <div class="form-group" style="margin-bottom:14px"><label>Email</label><input type="email" id="util-email" placeholder="joao@empresa.co.mz" /></div>
+        <div class="form-group" style="margin-bottom:14px"><label>Password</label><input type="password" id="util-password" placeholder="Mínimo 6 caracteres" /></div>
+        <div class="form-group" style="margin-bottom:20px">
+          <label>Papel / Função</label>
+          <select id="util-papel">
+            <option value="admin">Administrador</option>
+            <option value="gestor" selected>Gestor de frota</option>
+            <option value="motorista">Motorista</option>
+            <option value="financeiro">Financeiro</option>
+          </select>
+        </div>
+        <div style="display:flex;gap:10px;justify-content:flex-end">
+          <button class="btn btn-outline" onclick="fecharModalUtilizador()">Cancelar</button>
+          <button class="btn btn-primary" onclick="guardarUtilizador()"><i class="ti ti-check"></i> Guardar</button>
+        </div>
+      </div>
+    </div>
+
   </div><!-- /main -->
 </div><!-- /app -->
 
@@ -1978,6 +2034,7 @@
     const nav    = document.getElementById('nav-' + page);
     if (target) target.classList.add('active');
     if (nav)    nav.classList.add('active');
+    if (page === 'utilizadores') carregarUtilizadores();
   }
 
   // ════════════════════════════════════════════════════════
@@ -2228,6 +2285,105 @@
       URL.revokeObjectURL(url);
       showNotif('success','Relatório','Ficheiro CSV descarregado com sucesso!');
     } catch(e) { showNotif('warn','Erro', e.message); }
+  }
+
+  // ════════════════════════════════════════════════════════
+  // UTILIZADORES
+  // ════════════════════════════════════════════════════════
+  const PAPEIS = { admin: 'Administrador', gestor: 'Gestor', motorista: 'Motorista', financeiro: 'Financeiro' };
+  const PAPEL_COR = { admin: 'var(--primary)', gestor: 'var(--success)', motorista: 'var(--warning)', financeiro: '#8B5CF6' };
+
+  async function carregarUtilizadores() {
+    try {
+      const lista = await apiFetch('/utilizadores');
+      const tbody = document.getElementById('tbody-utilizadores');
+      if (!lista.length) {
+        tbody.innerHTML = '<tr><td colspan="5" style="padding:24px;text-align:center;color:var(--text2)">Nenhum utilizador encontrado.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = lista.map(u => `
+        <tr style="border-bottom:1px solid var(--border)">
+          <td style="padding:12px 16px;color:var(--text);font-weight:500">${u.nome}</td>
+          <td style="padding:12px 16px;color:var(--text2)">${u.email}</td>
+          <td style="padding:12px 16px">
+            <span style="background:${PAPEL_COR[u.papel]}22;color:${PAPEL_COR[u.papel]};padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600">
+              ${PAPEIS[u.papel] || u.papel}
+            </span>
+          </td>
+          <td style="padding:12px 16px">
+            <span style="background:${u.ativo ? 'var(--success-light)' : 'var(--bg2)'};color:${u.ativo ? 'var(--success)' : 'var(--text2)'};padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600">
+              ${u.ativo ? 'Activo' : 'Inactivo'}
+            </span>
+          </td>
+          <td style="padding:12px 16px">
+            <button class="action-btn" onclick="editarUtilizador('${u.id}','${u.nome}','${u.email}','${u.papel}')" style="margin-right:6px"><i class="ti ti-edit"></i></button>
+            ${u.ativo ? `<button class="action-btn" onclick="desactivarUtilizador('${u.id}')" title="Desactivar"><i class="ti ti-user-off"></i></button>` : `<button class="action-btn" onclick="activarUtilizador('${u.id}')" title="Activar"><i class="ti ti-user-check"></i></button>`}
+          </td>
+        </tr>`).join('');
+    } catch(e) { showNotif('warn','Erro','Não foi possível carregar utilizadores.'); }
+  }
+
+  function abrirModalUtilizador() {
+    document.getElementById('util-id').value = '';
+    document.getElementById('util-nome').value = '';
+    document.getElementById('util-email').value = '';
+    document.getElementById('util-password').value = '';
+    document.getElementById('util-papel').value = 'gestor';
+    document.getElementById('util-email').disabled = false;
+    document.getElementById('modal-util-titulo').textContent = 'Novo utilizador';
+    document.getElementById('modal-utilizador').style.display = 'flex';
+  }
+
+  function editarUtilizador(id, nome, email, papel) {
+    document.getElementById('util-id').value = id;
+    document.getElementById('util-nome').value = nome;
+    document.getElementById('util-email').value = email;
+    document.getElementById('util-password').value = '';
+    document.getElementById('util-papel').value = papel;
+    document.getElementById('util-email').disabled = true;
+    document.getElementById('modal-util-titulo').textContent = 'Editar utilizador';
+    document.getElementById('modal-utilizador').style.display = 'flex';
+  }
+
+  function fecharModalUtilizador() {
+    document.getElementById('modal-utilizador').style.display = 'none';
+  }
+
+  async function guardarUtilizador() {
+    const id = document.getElementById('util-id').value;
+    const nome = document.getElementById('util-nome').value.trim();
+    const email = document.getElementById('util-email').value.trim();
+    const password = document.getElementById('util-password').value;
+    const papel = document.getElementById('util-papel').value;
+    if (!nome || (!id && !email) || (!id && !password)) {
+      showNotif('warn','Formulário','Preencha todos os campos obrigatórios.'); return;
+    }
+    try {
+      if (id) {
+        const body = { nome, papel };
+        if (password) body.password = password;
+        await apiFetch(`/utilizadores/${id}`, { method: 'PUT', body: JSON.stringify(body) });
+        showNotif('success','Utilizador','Utilizador actualizado com sucesso!');
+      } else {
+        await apiFetch('/utilizadores', { method: 'POST', body: JSON.stringify({ nome, email, password, papel }) });
+        showNotif('success','Utilizador','Utilizador criado com sucesso!');
+      }
+      fecharModalUtilizador();
+      carregarUtilizadores();
+    } catch(e) { showNotif('warn','Erro', e.message || 'Erro ao guardar utilizador.'); }
+  }
+
+  async function desactivarUtilizador(id) {
+    if (!confirm('Desactivar este utilizador?')) return;
+    await apiFetch(`/utilizadores/${id}`, { method: 'DELETE' });
+    showNotif('success','Utilizador','Utilizador desactivado.');
+    carregarUtilizadores();
+  }
+
+  async function activarUtilizador(id) {
+    await apiFetch(`/utilizadores/${id}`, { method: 'PUT', body: JSON.stringify({ ativo: true }) });
+    showNotif('success','Utilizador','Utilizador reactivado.');
+    carregarUtilizadores();
   }
 
   // ════════════════════════════════════════════════════════
