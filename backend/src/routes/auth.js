@@ -9,7 +9,6 @@ router.post('/login', async (req, res) => {
   const { email, password } = req.body;
   if (!email || !password) return res.status(400).json({ erro: 'Email e password obrigatórios' });
   try {
-    // maybeSingle() retorna null em vez de lançar erro quando não encontra registo
     const { data, error } = await supabase
       .from('utilizadores')
       .select('*')
@@ -19,23 +18,24 @@ router.post('/login', async (req, res) => {
 
     if (error) {
       console.error('[login] erro supabase:', error.message);
-      return res.status(500).json({ erro: 'Erro interno do servidor' });
+      return res.status(500).json({ erro: error.message });
     }
     if (!data) return res.status(401).json({ erro: 'Credenciais inválidas' });
 
     const valido = await bcrypt.compare(password, data.password_hash);
     if (!valido) return res.status(401).json({ erro: 'Credenciais inválidas' });
 
+    const secret = process.env.JWT_SECRET || 'sigefen_secret_fallback_2024';
     const expiresIn = (process.env.JWT_EXPIRES_IN || '8h').replace(/['"]/g, '');
     const token = jwt.sign(
       { id: data.id, nome: data.nome, email: data.email, papel: data.papel },
-      process.env.JWT_SECRET,
+      secret,
       { expiresIn }
     );
     res.json({ token, user: { id: data.id, nome: data.nome, email: data.email, papel: data.papel } });
   } catch (err) {
     console.error('[login] erro inesperado:', err.message);
-    res.status(500).json({ erro: 'Erro interno do servidor' });
+    res.status(500).json({ erro: err.message });
   }
 });
 
