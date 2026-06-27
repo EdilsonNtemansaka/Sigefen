@@ -14,6 +14,7 @@ const abastecimentosRoutes = require('./routes/abastecimentos');
 const alertasRoutes = require('./routes/alertas');
 const relatoriosRoutes = require('./routes/relatorios');
 const utilizadoresRoutes = require('./routes/utilizadores');
+const configuracoesRoutes = require('./routes/configuracoes');
 const { authMiddleware } = require('./middleware/auth');
 const { iniciarAlertas } = require('./alertas');
 
@@ -43,6 +44,7 @@ app.use('/abastecimentos', authMiddleware, abastecimentosRoutes);
 app.use('/alertas', authMiddleware, alertasRoutes);
 app.use('/relatorios', authMiddleware, relatoriosRoutes);
 app.use('/utilizadores', authMiddleware, utilizadoresRoutes);
+app.use('/configuracoes', authMiddleware, configuracoesRoutes);
 
 app.get('/health', (req, res) => res.json({ status: 'ok', versao: '1.0.0' }));
 

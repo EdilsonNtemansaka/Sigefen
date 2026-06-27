@@ -569,7 +569,7 @@
     <div class="page active" id="page-dashboard">
       <div class="topbar">
         <i class="ti ti-layout-dashboard topbar-icon"></i>
-        <div class="topbar-title" data-i18n="title-dashboard">Dashboard <span id="dashboard-client">Frota Moçambique, Lda.</span></div>
+        <div class="topbar-title" data-i18n="title-dashboard">Dashboard <span id="dashboard-client" class="empresa-nome">Frota Moçambique, Lda.</span></div>
         <div class="badge-live"><div class="badge-live-dot"></div data-i18n="ao-vivo">Ao vivo</div>
         <div class="icon-btn" id="btn-alertas" onclick="togglePainelAlertas()" style="position:relative">
           <i class="ti ti-bell"></i>
@@ -1331,12 +1331,13 @@
       <div class="topbar"><i class="ti ti-settings topbar-icon"></i><div class="topbar-title" data-i18n="title-definicoes">Definições</div></div>
       <div class="content">
         <div class="card">
-          <div class="card-header"><span class="card-title"><i class="ti ti-building" style="color:var(--primary)"></i data-i18n="empresa">Empresa</span></div>
+          <div class="card-header"><span class="card-title"><i class="ti ti-building" style="color:var(--primary)"></i> Empresa</span></div>
           <div class="form-grid2" style="gap:14px">
-            <div class="form-group"><label>Nome da empresa</label><input type="text" value="Frota Moçambique, Lda." /></div>
-            <div class="form-group"><label>NIF</label><input type="text" value="400123456" /></div>
-            <div class="form-group"><label>Email</label><input type="email" value="admin@frotamoz.co.mz" /></div>
-            <div class="form-group"><label>Telefone</label><input type="text" value="+258 21 000 000" /></div>
+            <div class="form-group"><label>Nome da empresa</label><input type="text" id="cfg-nome" placeholder="Ex: Frota Moçambique, Lda." /></div>
+            <div class="form-group"><label>NIF</label><input type="text" id="cfg-nif" placeholder="400123456" /></div>
+            <div class="form-group"><label>Email</label><input type="email" id="cfg-email" placeholder="admin@empresa.co.mz" /></div>
+            <div class="form-group"><label>Telefone</label><input type="text" id="cfg-telefone" placeholder="+258 21 000 000" /></div>
+            <div class="form-group" style="grid-column:span 2"><label>Morada</label><input type="text" id="cfg-morada" placeholder="Maputo, Moçambique" /></div>
           </div>
         </div>
         <div class="card">
@@ -1351,8 +1352,8 @@
           <div class="form-group" style="max-width:220px"><select id="lang-select" onchange="setLanguage(this.value)"><option value="pt">Português (PT)</option><option value="en">English (EN)</option></select></div>
         </div>
         <div style="display:flex;gap:10px;justify-content:flex-end">
-          <button class="btn btn-outline" data-i18n="cancelar">Cancelar</button>
-          <button class="btn btn-primary" onclick="showNotif('success','Definições','Alterações guardadas com sucesso!')"><i class="ti ti-check"></i data-i18n="guardar">Guardar alterações</button>
+          <button class="btn btn-outline" onclick="carregarConfiguracoes()">Cancelar</button>
+          <button class="btn btn-primary" onclick="guardarConfiguracoes()"><i class="ti ti-check"></i> Guardar alterações</button>
         </div>
       </div>
     </div>
@@ -1454,6 +1455,7 @@
       if (avatar && res.user) avatar.textContent = res.user.nome.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
       await loadFromAPI();
       carregarAlertas();
+      carregarConfiguracoes();
     } catch(e) {
       errEl.textContent = e.message === 'Credenciais inválidas' ? 'Email ou password incorrectos.' : 'Erro de ligação ao servidor.';
     } finally {
@@ -2034,6 +2036,7 @@
     if (target) target.classList.add('active');
     if (nav)    nav.classList.add('active');
     if (page === 'utilizadores') carregarUtilizadores();
+    if (page === 'definicoes') carregarConfiguracoes();
   }
 
   // ════════════════════════════════════════════════════════
@@ -2383,6 +2386,39 @@
     await apiFetch(`/utilizadores/${id}`, { method: 'PUT', body: JSON.stringify({ ativo: true }) });
     showNotif('success','Utilizador','Utilizador reactivado.');
     carregarUtilizadores();
+  }
+
+  // ════════════════════════════════════════════════════════
+  // CONFIGURAÇÕES DA EMPRESA
+  // ════════════════════════════════════════════════════════
+  async function carregarConfiguracoes() {
+    try {
+      const cfg = await apiFetch('/configuracoes');
+      document.getElementById('cfg-nome').value     = cfg.nome_empresa || '';
+      document.getElementById('cfg-nif').value      = cfg.nif || '';
+      document.getElementById('cfg-email').value    = cfg.email || '';
+      document.getElementById('cfg-telefone').value = cfg.telefone || '';
+      document.getElementById('cfg-morada').value   = cfg.morada || '';
+      // actualizar nome no dashboard e topbar
+      const els = document.querySelectorAll('.empresa-nome');
+      els.forEach(el => el.textContent = cfg.nome_empresa || 'SIGEFEN');
+    } catch(e) { /* silencioso */ }
+  }
+
+  async function guardarConfiguracoes() {
+    const body = {
+      nome_empresa: document.getElementById('cfg-nome').value.trim(),
+      nif:      document.getElementById('cfg-nif').value.trim(),
+      email:    document.getElementById('cfg-email').value.trim(),
+      telefone: document.getElementById('cfg-telefone').value.trim(),
+      morada:   document.getElementById('cfg-morada').value.trim(),
+    };
+    try {
+      await apiFetch('/configuracoes', { method: 'PUT', body: JSON.stringify(body) });
+      const els = document.querySelectorAll('.empresa-nome');
+      els.forEach(el => el.textContent = body.nome_empresa);
+      showNotif('success','Definições','Alterações guardadas com sucesso!');
+    } catch(e) { showNotif('warn','Erro','Não foi possível guardar as definições.'); }
   }
 
   // ════════════════════════════════════════════════════════
