@@ -1330,6 +1330,20 @@
     <div class="page" id="page-definicoes">
       <div class="topbar"><i class="ti ti-settings topbar-icon"></i><div class="topbar-title" data-i18n="title-definicoes">Definições</div></div>
       <div class="content">
+        <!-- PLANO ACTUAL -->
+        <div class="card" style="border-left:4px solid var(--primary)">
+          <div class="card-header"><span class="card-title"><i class="ti ti-crown" style="color:var(--warning)"></i> Plano de subscrição</span></div>
+          <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+            <div>
+              <div style="font-size:22px;font-weight:700;color:var(--text)">Plano <span id="cfg-plano-actual" style="color:var(--primary)">—</span></div>
+              <div style="font-size:12px;color:var(--text2);margin-top:4px">Para mudar de plano contacte o suporte SIGEFEN.</div>
+            </div>
+            <div style="display:flex;gap:16px;text-align:center">
+              <div><div style="font-size:11px;color:var(--text2)">Camiões máx.</div><div style="font-size:20px;font-weight:700;color:var(--text)" id="cfg-max-camioes">—</div></div>
+              <div><div style="font-size:11px;color:var(--text2)">Utilizadores máx.</div><div style="font-size:20px;font-weight:700;color:var(--text)" id="cfg-max-utilizadores">—</div></div>
+            </div>
+          </div>
+        </div>
         <div class="card">
           <div class="card-header"><span class="card-title"><i class="ti ti-building" style="color:var(--primary)"></i> Empresa</span></div>
           <div class="form-grid2" style="gap:14px">
@@ -2389,8 +2403,46 @@
   }
 
   // ════════════════════════════════════════════════════════
-  // CONFIGURAÇÕES DA EMPRESA
+  // CONFIGURAÇÕES DA EMPRESA + PLANO
   // ════════════════════════════════════════════════════════
+  let PLANO_ACTUAL = 'pro';
+  const PLANO_NOME = { starter:'Starter', pro:'Pro', business:'Business', enterprise:'Enterprise' };
+  const PLANO_COR  = { starter:'#64748B', pro:'#1E40AF', business:'#7C3AED', enterprise:'#B45309' };
+
+  // Funcionalidades por plano (acumulativo)
+  const PLANO_FEATURES = {
+    starter:    ['viagens-registo','frota-registo','frota-docs','motoristas-registo','combustivel-registo','combustivel-alerta','manutencao-agendar','relatorio-basico','exportar-csv'],
+    pro:        ['historico-rotas','filtros-estado','linha-tempo','alertas-documentos','historico-viagens','consumo-camiao','historico-manutencoes','alertas-preventivos','exportar-pdf','suporte-whatsapp'],
+    business:   ['gestao-carga','avaliacao-desempenho','custo-rota','gestao-oficinas','relatorio-rota','relatorio-motorista'],
+    enterprise: ['relatorio-financeiro','api-integracao','suporte-dedicado']
+  };
+
+  function temAcesso(feature) {
+    const ordem = ['starter','pro','business','enterprise'];
+    const nivel = ordem.indexOf(PLANO_ACTUAL);
+    for (let i = 0; i <= nivel; i++) {
+      if (PLANO_FEATURES[ordem[i]]?.includes(feature)) return true;
+    }
+    return false;
+  }
+
+  function aplicarRestricoesDePlano() {
+    // Badge do plano na sidebar / topbar
+    const badge = document.getElementById('plano-badge');
+    if (badge) {
+      badge.textContent = PLANO_NOME[PLANO_ACTUAL] || PLANO_ACTUAL;
+      badge.style.background = PLANO_COR[PLANO_ACTUAL] + '22';
+      badge.style.color = PLANO_COR[PLANO_ACTUAL];
+    }
+    // Bloquear exportar CSV/PDF para starter no botão de download
+    const dlBtn = document.querySelector('.topbar-actions .ti-download')?.parentElement;
+    if (dlBtn && !temAcesso('exportar-csv')) {
+      dlBtn.title = 'Exportar CSV — disponivel no plano Pro+';
+      dlBtn.style.opacity = '0.4';
+      dlBtn.onclick = () => showNotif('warn','Plano Starter','Exportação disponível a partir do plano Pro.');
+    }
+  }
+
   async function carregarConfiguracoes() {
     try {
       const cfg = await apiFetch('/configuracoes');
@@ -2399,9 +2451,22 @@
       document.getElementById('cfg-email').value    = cfg.email || '';
       document.getElementById('cfg-telefone').value = cfg.telefone || '';
       document.getElementById('cfg-morada').value   = cfg.morada || '';
+      if (cfg.plano) {
+        PLANO_ACTUAL = cfg.plano;
+        aplicarRestricoesDePlano();
+        // Mostrar plano nas definições
+        const planEl = document.getElementById('cfg-plano-actual');
+        if (planEl) {
+          planEl.textContent = PLANO_NOME[cfg.plano] || cfg.plano;
+          planEl.style.color = PLANO_COR[cfg.plano];
+        }
+      }
       // actualizar nome no dashboard e topbar
-      const els = document.querySelectorAll('.empresa-nome');
-      els.forEach(el => el.textContent = cfg.nome_empresa || 'SIGEFEN');
+      document.querySelectorAll('.empresa-nome').forEach(el => el.textContent = cfg.nome_empresa || 'SIGEFEN');
+      const mc = document.getElementById('cfg-max-camioes');
+      const mu = document.getElementById('cfg-max-utilizadores');
+      if (mc) mc.textContent = cfg.max_camioes || '—';
+      if (mu) mu.textContent = cfg.max_utilizadores === 9999 ? '∞' : (cfg.max_utilizadores || '—');
     } catch(e) { /* silencioso */ }
   }
 
